@@ -1,13 +1,17 @@
-# dependencies
+# Ignore node_modules in both frontend and backend
+frontend/node_modules/
+backend/node_modules/
+
+# Ignore general node_modules
 node_modules/
 
-# build output
+# Ignore build output
 build/
 
-# environment variables
+# Ignore environment variables
 .env
 *.env
 
-# system files
+# Ignore system files (like .DS_Store)
 .DS_Store
 *.log
