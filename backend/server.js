@@ -223,13 +223,13 @@ app.post("/api/auth/login", async (req, res) => {
             role: user.role
         });
 
-        // Determine the user type based on role
-        const userType = user.role;
+        // Ensure userType is explicitly set
+        const userType = user.role || 'user'; // Fallback to 'user' if role is undefined
 
         // Prepare response payload
         const responsePayload = { 
             success: true, 
-            userType: userType,
+            userType: userType, // Explicitly set userType
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,

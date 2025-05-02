@@ -511,7 +511,7 @@ function UploadComponent({ userEmail, detailsComplete }) {
        // Draw and compress image
        ctx.drawImage(img, 0, 0, width, height);
        
-       // Convert to base64 with reduced quality
+       
        const base64data = canvas.toDataURL('image/jpeg', 0.7);
 
        const payload = {

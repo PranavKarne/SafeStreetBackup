@@ -261,6 +261,19 @@ html, body {
   75% { transform: translateX(5px); }
 }
 
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  border: 1px solid #c3e6cb;
+}
+
 .auth-button {
   display: flex;
   align-items: center;

@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Home, Eye, EyeOff, Loader2, ArrowRight, AlertCircle, User, Mail, Lock, Shield } from 'lucide-react';
 import './LoginRegister.css';
 
 const LoginRegister = () => {
-  const navigate = useNavigate();
   const [isRegistering, setIsRegistering] = useState(false);
   const [userType, setUserType] = useState('user');
   const [formData, setFormData] = useState({
@@ -104,7 +103,7 @@ const LoginRegister = () => {
       });
 
       const data = await response.json();
-      console.log('Login response:', data);
+      console.log('Response:', data);
 
       if (!response.ok) {
         // Handle specific error cases
@@ -121,24 +120,37 @@ const LoginRegister = () => {
         }
       }
 
-      // Check if the user type matches the account type
-      if (data.userType !== userType) {
-        throw new Error(`This account is registered as a ${data.userType}. Please select the correct account type.`);
-      }
-
       if (isRegistering) {
+        // Handle registration success
         setSuccessMessage('Registration successful! Please log in.');
         setIsRegistering(false);
+        // Keep the email and userType, clear other fields
         setFormData({
           firstName: '',
           lastName: '',
           phoneNumber: '',
-          email: '',
+          email: formData.email, // Keep the email
           password: '',
           confirmPassword: '',
           authorityCode: ''
         });
+        // If registered as authority, keep the authority type
+        if (userType === 'authority') {
+          setUserType('authority');
+        } else {
+          setUserType('user');
+        }
       } else {
+        // Handle login success
+        // Log the full response data for debugging
+        console.log('Login response data:', data);
+
+        // Check if the user type exists in the response
+        if (!data.userType) {
+          console.error('Server response missing userType:', data);
+          throw new Error('Server response is missing user type information. Please try again.');
+        }
+
         // Store user information
         localStorage.setItem('email', data.email);
         localStorage.setItem('userType', data.userType);
@@ -184,6 +196,12 @@ const LoginRegister = () => {
           <div className="error-message">
             <AlertCircle size={20} />
             <span>{error}</span>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="success-message">
+            <span>{successMessage}</span>
           </div>
         )}
 
@@ -308,6 +326,31 @@ const LoginRegister = () => {
               </div>
             </div>
 
+            {isRegistering && (
+              <div>
+                <label className="input-label">Confirm Password</label>
+                <div className="input-wrapper">
+                  <Lock className="input-icon" />
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className="form-input"
+                    placeholder="Confirm your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="password-toggle"
+                  >
+                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {userType === 'authority' && (
               <div>
                 <label className="input-label">Authority Code</label>
@@ -324,33 +367,6 @@ const LoginRegister = () => {
                   />
                 </div>
               </div>
-            )}
-
-            {isRegistering && (
-              <>
-                <div>
-                  <label className="input-label">Confirm Password</label>
-                  <div className="input-wrapper">
-                    <Lock className="input-icon" />
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      className="form-input"
-                      placeholder="Confirm your password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="password-toggle"
-                    >
-                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-                </div>
-              </>
             )}
           </div>
 
