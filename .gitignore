@@ -4,10 +4,10 @@ node_modules/
 # build output
 build/
 
-# environment files
+# environment variables
 .env
 *.env
 
-# OS-specific files
+# system files
 .DS_Store
 *.log
