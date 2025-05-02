@@ -75,7 +75,7 @@ def get_repair_solution(label, severity):
     }
 
     actions = {
-        'low': "Monitor the area periodically!!.",
+        'low': "Monitor the area periodically!.",
         'medium': "Schedule repair soon to prevent further damage.",
         'high': "Immediate repair needed to ensure road safety."
     }
