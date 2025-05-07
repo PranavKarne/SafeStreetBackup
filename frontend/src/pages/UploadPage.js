@@ -1,6 +1,44 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Upload, History, User, LogOut, FileText } from 'lucide-react';
 import './UploadPage.css';
+import NotificationBell from '../components/NotificationBell';
+
+// List of all districts in Telangana
+const TELANGANA_DISTRICTS = [
+  'Adilabad',
+  'Bhadradri Kothagudem',
+  'Hyderabad',
+  'Jagtial',
+  'Jangaon',
+  'Jayashankar Bhupalpally',
+  'Jogulamba Gadwal',
+  'Kamareddy',
+  'Karimnagar',
+  'Khammam',
+  'Komaram Bheem Asifabad',
+  'Mahabubabad',
+  'Mahabubnagar',
+  'Mancherial',
+  'Medak',
+  'Medchal-Malkajgiri',
+  'Mulugu',
+  'Nagarkurnool',
+  'Nalgonda',
+  'Narayanpet',
+  'Nirmal',
+  'Nizamabad',
+  'Peddapalli',
+  'Rajanna Sircilla',
+  'Rangareddy',
+  'Sangareddy',
+  'Siddipet',
+  'Suryapet',
+  'Vikarabad',
+  'Wanaparthy',
+  'Warangal Rural',
+  'Warangal Urban',
+  'Yadadri Bhuvanagiri'
+];
 
 function UploadPage() {
   const userEmail = localStorage.getItem("email");
@@ -23,7 +61,7 @@ function UploadPage() {
   const handleLogout = async () => {
     try {
       // Clear address-related fields from the database
-      const response = await fetch('http://localhost:5000/api/user/details', {
+      const response = await fetch('http://localhost:5004/api/user/details', {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -32,7 +70,7 @@ function UploadPage() {
         body: JSON.stringify({ 
           email: userEmail,
           address: '',
-          city: '',
+          district: '',
           pincode: ''
         })
       });
@@ -68,7 +106,7 @@ function UploadPage() {
             className={`nav-item ${activeTab === 'details' ? 'active' : ''}`} 
             onClick={() => handleTabChange('details')}
           >
-            <FileText size={20} /><span>My Details</span>
+            <FileText size={20} /><span>Image Details</span>
           </button>
           <button 
             className={`nav-item ${activeTab === 'upload' ? 'active' : ''}`} 
@@ -115,6 +153,21 @@ function UploadPage() {
       <main className="main-content">
         <header className="dashboard-header">
           <h1>Welcome, {userEmail || "Guest"}!</h1>
+          <div className="header-actions">
+            <NotificationBell 
+              userEmail={userEmail} 
+              onNavigateToHistory={(report) => {
+                // Navigate to history tab
+                setActiveTab('history');
+                // Set a timeout to allow the tab to render before showing the image details
+                setTimeout(() => {
+                  // Find the report in the PreviousUploads component and show its details
+                  const event = new CustomEvent('showReportDetails', { detail: report });
+                  window.dispatchEvent(event);
+                }, 100);
+              }}
+            />
+          </div>
         </header>
 
         {activeTab === 'details' && 
@@ -143,7 +196,7 @@ function UserDetailsForm({ userEmail, onDetailsUpdate }) {
     lastName: '',
     phoneNumber: '',
     address: '',
-    city: '',
+    district: '',
     pincode: ''
   });
   const [loading, setLoading] = useState(true);
@@ -152,7 +205,7 @@ function UserDetailsForm({ userEmail, onDetailsUpdate }) {
   const [successMessage, setSuccessMessage] = useState('');
 
   const checkDetailsCompleteness = useCallback((data) => {
-    const requiredFields = [data?.address, data?.city, data?.pincode];
+    const requiredFields = [data?.address, data?.district, data?.pincode];
     const isComplete = requiredFields.every(field => field && field.trim() !== '');
     console.log("Details completeness check:", isComplete, data);
     onDetailsUpdate(isComplete);
@@ -168,7 +221,7 @@ function UserDetailsForm({ userEmail, onDetailsUpdate }) {
       }
       setLoading(true);
       try {
-        const response = await fetch(`http://localhost:5000/api/user?email=${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`http://localhost:5004/api/user?email=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
 
         if (response.ok && data.success && data.user) {
@@ -178,7 +231,7 @@ function UserDetailsForm({ userEmail, onDetailsUpdate }) {
             lastName: userData.lastName || '',
             phoneNumber: userData.phoneNumber || '',
             address: userData.address || '',
-            city: userData.city || '',
+            district: userData.district || '',
             pincode: userData.pincode || ''
           });
           setError('');
@@ -223,7 +276,7 @@ function UserDetailsForm({ userEmail, onDetailsUpdate }) {
       console.log('Saving details for user:', userEmail);
       console.log('Form data:', formData);
 
-      const response = await fetch('http://localhost:5000/api/user/details', {
+      const response = await fetch('http://localhost:5004/api/user/details', {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -244,7 +297,7 @@ function UserDetailsForm({ userEmail, onDetailsUpdate }) {
           lastName: updatedUserData.lastName || '',
           phoneNumber: updatedUserData.phoneNumber || '',
           address: updatedUserData.address || '',
-          city: updatedUserData.city || '',
+          district: updatedUserData.district || '',
           pincode: updatedUserData.pincode || ''
         });
         checkDetailsCompleteness(updatedUserData);
@@ -268,7 +321,7 @@ function UserDetailsForm({ userEmail, onDetailsUpdate }) {
   return (
     <div className="details-container">
       <div className="details-card">
-        <h2 className="details-header">My Details</h2>
+        <h2 className="details-header">Image Details</h2>
         <p className="details-subheader">
 Please keep your information up to date. Address details are required for image uploads.
         </p>
@@ -335,16 +388,20 @@ Please keep your information up to date. Address details are required for image 
              </div>
             <div className="form-grid two-columns">
               <div className="input-group">
-                <label htmlFor="city">City *</label>
-                <input 
-                  type="text" 
-                  id="city" 
-                  name="city" 
-                  value={formData.city}
-                  onChange={handleChange} 
-                  placeholder="Enter your city"
-                  required 
-                />
+                <label htmlFor="district">District *</label>
+                <select
+                  id="district"
+                  name="district"
+                  value={formData.district}
+                  onChange={handleChange}
+                  className="form-select"
+                  required
+                >
+                  <option value="">Select a district</option>
+                  {TELANGANA_DISTRICTS.map((district, index) => (
+                    <option key={index} value={district}>{district}</option>
+                  ))}
+                </select>
               </div>
               <div className="input-group">
                 <label htmlFor="pincode">Pincode *</label>
@@ -433,7 +490,7 @@ function UploadComponent({ userEmail, detailsComplete }) {
     formData.append("image", image);
 
     try {
-      const pythonServiceUrl = "http://localhost:5001/predict"; 
+      const pythonServiceUrl = "http://localhost:5001/predict"; // Road classification service
       const response = await fetch(pythonServiceUrl, { 
         method: "POST",
         body: formData,
@@ -524,7 +581,7 @@ function UploadComponent({ userEmail, detailsComplete }) {
        };
 
        try {
-           const response = await fetch("http://localhost:5000/api/upload", { 
+           const response = await fetch("http://localhost:5004/api/upload", { 
                method: "POST",
                headers: { "Content-Type": "application/json" },
                body: JSON.stringify(payload),
@@ -539,7 +596,7 @@ function UploadComponent({ userEmail, detailsComplete }) {
                setResult(null);
                setShowResult(false);
            } else {
-               throw new Error(data.error || 'Failed to save result to database.');
+               throw new Error(data.error || 'Failed to save the result');
            }
        } catch (error) {
            console.error("Save Result error:", error);
@@ -621,7 +678,7 @@ function UploadComponent({ userEmail, detailsComplete }) {
                         disabled={saving || loading}
                         style={{marginTop: '15px'}}
                      >
-                        {saving ? <div className="spinner"></div> : 'Save Result to Database'}
+                        {saving ? <div className="spinner"></div> : 'Submit Report'}
                   </button>
                 ) : (
                      <p className="error-message" style={{textAlign: 'center', marginTop: '15px'}}>
@@ -664,29 +721,55 @@ function UploadComponent({ userEmail, detailsComplete }) {
   );
 }
 
-function PreviousUploads({ userEmail }) {
+function PreviousUploads() {
+  const userEmail = localStorage.getItem("email");
   const [uploads, setUploads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
+  const [newlyResolvedReports, setNewlyResolvedReports] = useState([]);
+  const [showNotification, setShowNotification] = useState(false);
 
   useEffect(() => {
     const fetchUploads = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/uploads?email=${userEmail}`);
+        setLoading(true);
+        const response = await fetch(`http://localhost:5004/api/uploads?email=${userEmail}`);
         const data = await response.json();
         
         if (data.success) {
+          // Get the last time the user checked their reports
+          const lastChecked = localStorage.getItem('lastReportCheck') || '2000-01-01T00:00:00.000Z';
+          const lastCheckedDate = new Date(lastChecked);
+          
           const sortedUploads = data.uploads.map(upload => {
-            // The imageUrl is already a base64 string from MongoDB
+            // Use the status and progress fields from the backend
+            // If they don't exist, use default values
             return {
               ...upload,
-              imageUrl: upload.imageUrl // Use the base64 image data directly
+              imageUrl: upload.imageUrl,
+              status: upload.status || 'Unseen',
+              progress: upload.progress || 'Unresolved'
             };
           }).sort((a, b) => 
             new Date(b.uploadedAt) - new Date(a.uploadedAt)
           );
+          
+          // Find reports that have been resolved since the last check
+          const resolved = sortedUploads.filter(upload => {
+            return upload.progress === 'Resolved';
+          });
+          
+          // Update the last checked time
+          localStorage.setItem('lastReportCheck', new Date().toISOString());
+          
+          // Set the uploads and newly resolved reports
           setUploads(sortedUploads);
+          
+          if (resolved.length > 0) {
+            setNewlyResolvedReports(resolved);
+            setShowNotification(true);
+          }
         } else {
           setError(data.error || "Failed to fetch uploads");
         }
@@ -699,6 +782,20 @@ function PreviousUploads({ userEmail }) {
     };
 
     fetchUploads();
+    
+    // Listen for the custom event to show report details
+    const handleShowReportDetails = (event) => {
+      const report = event.detail;
+      if (report && report._id) {
+        setSelectedImage(report);
+      }
+    };
+    
+    window.addEventListener('showReportDetails', handleShowReportDetails);
+    
+    return () => {
+      window.removeEventListener('showReportDetails', handleShowReportDetails);
+    };
   }, [userEmail]);
 
   if (loading) {
@@ -730,16 +827,17 @@ function PreviousUploads({ userEmail }) {
   return (
     <div className="history-container">
       <h2>Your Upload History</h2>
+      
       <div className="history-table-wrapper">
         <table className="history-table">
           <thead>
             <tr>
               <th>Image</th>
               <th>Location</th>
-              <th>Classification</th>
-              <th>Confidence</th>
               <th>Status</th>
-              <th>Uploaded At</th>
+              <th>Progress</th>
+              <th>Uploaded Date</th>
+              <th>Uploaded Time</th>
             </tr>
           </thead>
           <tbody>
@@ -761,22 +859,22 @@ function PreviousUploads({ userEmail }) {
                 <td>
                   <div className="location-details">
                     <p><strong>Address:</strong> {upload.roadLocation?.address || 'N/A'}</p>
-                    <p><strong>City:</strong> {upload.roadLocation?.city || 'N/A'}</p>
+                    <p><strong>District:</strong> {upload.roadLocation?.district || 'N/A'}</p>
                     <p><strong>Pincode:</strong> {upload.roadLocation?.pincode || 'N/A'}</p>
                   </div>
                 </td>
                 <td>
-                  <span className={`classification-label ${upload.classification ? upload.classification.toLowerCase().replace(' ', '_') : 'n/a'}`}>
-                    {upload.classification || 'N/A'}
+                  <span className={`status-label ${upload.status === 'Seen' ? 'seen' : 'unseen'}`}>
+                    {upload.status === 'Seen' ? 'Seen' : 'Unseen'}
                   </span>
                 </td>
-                <td>{Math.round(upload.confidence * 100)}%</td>
                 <td>
-                  <span className={`status-label ${upload.status ? upload.status.toLowerCase() : 'n/a'}`}>
-                    {upload.status || 'N/A'}
+                  <span className={`progress-label ${upload.progress === 'Resolved' ? 'resolved' : 'unresolved'}`}>
+                    {upload.progress || 'Unresolved'}
                   </span>
                 </td>
-                <td>{new Date(upload.uploadedAt).toLocaleString()}</td>
+                <td>{new Date(upload.uploadedAt).toLocaleDateString()}</td>
+                <td>{new Date(upload.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
               </tr>
             ))}
           </tbody>
@@ -786,17 +884,36 @@ function PreviousUploads({ userEmail }) {
       {/* Image Preview Modal */}
       {selectedImage && (
         <div className="image-preview-modal" onClick={() => setSelectedImage(null)}>
-          <div className="image-preview-content" onClick={e => e.stopPropagation()}>
+          <div className="image-preview-content image-preview-flex" onClick={e => e.stopPropagation()}>
             <button className="close-button" onClick={() => setSelectedImage(null)}>×</button>
-            <img src={selectedImage.imageUrl} alt={selectedImage.imageName} />
+            
+            <div className="image-container">
+              <img src={selectedImage.imageUrl} alt={selectedImage.imageName} />
+            </div>
+            
             <div className="image-details">
-              <h3>Image Details</h3>
-              <p><strong>Location:</strong> {selectedImage.roadLocation?.address || 'N/A'}</p>
-              <p><strong>City:</strong> {selectedImage.roadLocation?.city || 'N/A'}</p>
-              <p><strong>Pincode:</strong> {selectedImage.roadLocation?.pincode || 'N/A'}</p>
-              <p><strong>Classification:</strong> {selectedImage.classification || 'N/A'}</p>
-              <p><strong>Confidence:</strong> {Math.round(selectedImage.confidence * 100)}%</p>
-              <p><strong>Uploaded:</strong> {new Date(selectedImage.uploadedAt).toLocaleString()}</p>
+              <div className="status-indicator">
+                <div className={`status-badge-large ${selectedImage.progress === 'Resolved' ? 'resolved' : 'unresolved'}`}>
+                  <span className="status-icon">{selectedImage.progress === 'Resolved' ? '✓' : '⟳'}</span>
+                  <span className="status-text">{selectedImage.progress === 'Resolved' ? 'Resolved' : 'Not Resolved'}</span>
+                </div>
+              </div>
+              
+              <h3>Location Details</h3>
+              <div className="location-info">
+                <div className="info-row">
+                  <span className="info-label">Address:</span>
+                  <span className="info-value">{selectedImage.roadLocation?.address || 'N/A'}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">District:</span>
+                  <span className="info-value">{selectedImage.roadLocation?.district || 'N/A'}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Pincode:</span>
+                  <span className="info-value">{selectedImage.roadLocation?.pincode || 'N/A'}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -813,7 +930,7 @@ function ProfileDisplay({ userEmail }) {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/user?email=${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`http://localhost:5004/api/user?email=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
 
         if (data.success && data.user) {
@@ -864,35 +981,19 @@ function ProfileDisplay({ userEmail }) {
       <div className="profile-field">
         <span className="profile-label">First Name:</span>
         <span className="profile-value">{userData.firstName || 'N/A'}</span>
-          </div>
+      </div>
       <div className="profile-field">
         <span className="profile-label">Last Name:</span>
         <span className="profile-value">{userData.lastName || 'N/A'}</span>
-          </div>
+      </div>
       <div className="profile-field">
         <span className="profile-label">Email:</span>
         <span className="profile-value">{userData.email || 'N/A'}</span>
-          </div>
+      </div>
       <div className="profile-field">
         <span className="profile-label">Phone Number:</span>
         <span className="profile-value">{userData.phoneNumber || 'N/A'}</span>
       </div>
-      {userData.role === 'user' && (
-        <>
-          <div className="profile-field">
-            <span className="profile-label">Address:</span>
-            <span className="profile-value">{userData.address || 'N/A'}</span>
-          </div>
-          <div className="profile-field">
-            <span className="profile-label">City:</span>
-            <span className="profile-value">{userData.city || 'N/A'}</span>
-          </div>
-          <div className="profile-field">
-            <span className="profile-label">Pincode:</span>
-            <span className="profile-value">{userData.pincode || 'N/A'}</span>
-          </div>
-        </>
-      )}
     </div>
   );
 }

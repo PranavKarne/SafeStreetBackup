@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaBell } from 'react-icons/fa';
 
 const Navbar = () => {
   const location = useLocation();
@@ -10,8 +9,9 @@ const Navbar = () => {
   const navItems = [
     { name: 'Home', path: '/authority' },
     { name: 'Reports', path: '/authority/ReportsPage' },
+    { name: 'Area-wise Uploads', path: '/authority/areawise-uploads' },
     { name: 'Status', path: '/authority/Status' },
-    { name: 'Settings', path: '/authority/Settings' },
+    { name: 'Profile', path: '/authority/Settings' },
   ];
 
   const handleLogoutClick = () => {
@@ -31,13 +31,6 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Top bar with small bell icon */}
-      <div style={styles.topbar}>
-        <div style={styles.bellIcon}>
-          <FaBell size={12} />
-        </div>
-      </div>
-
       {/* Sidebar */}
       <div style={styles.sidebar}>
         <div>
@@ -99,38 +92,11 @@ const Navbar = () => {
 };
 
 const styles = {
-  topbar: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '48px',
-    backgroundColor: '#1e1e2f',
-    display: 'flex',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    padding: '0 15px',
-    boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
-    zIndex: 1100,
-  },
-  bellIcon: {
-    padding: '6px',
-    borderRadius: '50%',
-    cursor: 'pointer',
-    backgroundColor: '#2e2e48',
-    color: '#ffffff',
-    fontSize: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '28px',
-    height: '28px',
-  },
   sidebar: {
     width: '220px',
     height: '100vh',
     position: 'fixed',
-    top: '48px', // adjust to match topbar height
+    top: '0',
     left: 0,
     backgroundColor: '#1e1e2f',
     color: '#fff',

@@ -9,9 +9,11 @@ const RoadImageSchema = new mongoose.Schema({
     predictedImageUrl: { type: String },
     roadLocation: {
         address: { type: String, required: true },
-        city: { type: String, required: true },
+        district: { type: String, required: true },
         pincode: { type: String, required: true }
     },
+    status: { type: String, default: 'Unseen' },
+    progress: { type: String, default: 'Unresolved' },
     uploadedAt: { type: Date, default: Date.now }
 });
 

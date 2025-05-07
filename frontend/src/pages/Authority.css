@@ -17,6 +17,10 @@
   margin: 0 auto;
 }
 
+.authority-container .main-content {
+  margin-left: 220px;
+}
+
 /* Dashboard Section */
 .dashboard {
   background: white;
@@ -83,21 +87,23 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .reports-header h2 {
-  color: #333;
   margin: 0;
+  margin-bottom: 1rem;
 }
 
 /* Filter Controls */
 .filter-controls {
   display: flex;
   gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-.filter-controls button {
+.filter-button {
   padding: 0.5rem 1rem;
   border: 1px solid #ddd;
   border-radius: 5px;
@@ -105,16 +111,19 @@
   color: #666;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-size: 0.9rem;
 }
 
-.filter-controls button:hover {
+.filter-button:hover {
   background: #f0f0f0;
+  transform: translateY(-1px);
 }
 
-.filter-controls button.active {
+.filter-button.active {
   background: #1a73e8;
   color: white;
   border-color: #1a73e8;
+  font-weight: 500;
 }
 
 /* Settings Section */
@@ -123,6 +132,14 @@
   border-radius: 10px;
   padding: 2rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.settings-section h2 {
+  color: #333;
+  margin-bottom: 2rem;
+  text-align: center;
 }
 
 .settings-content {
@@ -200,11 +217,12 @@
 .total-reports {
   background: #e8f0fe;
   color: #1a73e8;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   border-radius: 5px;
   text-align: center;
-  font-weight: bold;
-  margin-top: 1rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
 }
 
 /* Responsive Design */
@@ -215,12 +233,12 @@
 
   .reports-header {
     flex-direction: column;
-    gap: 1rem;
+    align-items: flex-start;
   }
 
   .filter-controls {
     width: 100%;
-    justify-content: center;
+    flex-wrap: wrap;
   }
 
   .stats-overview {

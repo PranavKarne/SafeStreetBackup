@@ -87,6 +87,7 @@ const ReportsPage = () => {
       report.id === id ? { ...report, predicted: true, status: 'Seen' } : report
     );
     setReports(updatedReports);
+    // Optionally, make a backend call here if these reports are fetched from the backend in production
   };
 
   const selectedReport = reports.find((r) => r.id === selectedReportId);
@@ -108,3 +109,4 @@ const ReportsPage = () => {
 };
 
 export default ReportsPage;
+

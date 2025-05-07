@@ -1,79 +1,91 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./ProfileSettings.css";
 
 const ProfileSettings = () => {
-  const [form, setForm] = useState({
-    oldPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const profileName = "BUDIDHA NIKHITHA GOUD";
-  const profileInitials = "BU";
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const email = localStorage.getItem('email');
+        if (!email) {
+          setError('No user email found');
+          setLoading(false);
+          return;
+        }
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
-  };
+        const response = await fetch(`http://localhost:5004/api/user?email=${encodeURIComponent(email)}`);
+        const data = await response.json();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Password change submitted", form);
-    // Add backend logic if needed
-  };
+        if (data.success && data.user) {
+          setUserData(data.user);
+        } else {
+          setError(data.error || 'Failed to fetch user data');
+        }
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+        setError('Failed to connect to server');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="profile-settings-container">
+        <div className="loading-message">Loading profile data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="profile-settings-container">
+        <div className="error-message">{error}</div>
+      </div>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <div className="profile-settings-container">
+        <div className="error-message">No user data found</div>
+      </div>
+    );
+  }
+
+  const profileInitials = `${userData.firstName.charAt(0)}${userData.lastName.charAt(0)}`.toUpperCase();
 
   return (
     <div className="profile-settings-container">
-      <div className="left-panel">
+      <div className="profile-card">
+        <h2 className="profile-title">Profile Information</h2>
         <div className="profile-pic-circle">
           <div className="profile-placeholder">{profileInitials}</div>
         </div>
-        <p className="username">{profileName}</p>
-
-        <button className="btn-link">🔐 Change Password</button>
-      </div>
-
-      <div className="right-panel">
-        <h2>Password Settings</h2>
-        <p>Change or reset your account password</p>
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label>Old Password:</label>
-            <input
-              type="password"
-              name="oldPassword"
-              value={form.oldPassword}
-              onChange={handleChange}
-              placeholder="Old password"
-              required
-            />
+        <div className="user-info">
+          <div className="info-item">
+            <div className="info-label">First name</div>
+            <div className="info-value">{userData.firstName}</div>
           </div>
-          <div className="input-group">
-            <label>New Password:</label>
-            <input
-              type="password"
-              name="newPassword"
-              value={form.newPassword}
-              onChange={handleChange}
-              placeholder="New password"
-              required
-            />
+          <div className="info-item">
+            <div className="info-label">Last name</div>
+            <div className="info-value">{userData.lastName}</div>
           </div>
-          <div className="input-group">
-            <label>Confirm Password:</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              placeholder="Confirm new password"
-              required
-            />
+          <div className="info-item">
+            <div className="info-label">Email</div>
+            <div className="info-value">{userData.email}</div>
           </div>
-          <button type="submit" className="save-btn">
-            Save Changes
-          </button>
-        </form>
+          <div className="info-item">
+            <div className="info-label">Phone number</div>
+            <div className="info-value">{userData.phoneNumber}</div>
+          </div>
+        </div>
       </div>
     </div>
   );

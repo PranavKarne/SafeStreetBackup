@@ -99,9 +99,9 @@ def predict():
                 doc = collection.find_one({'_id': ObjectId(report_id)})
                 road_location = doc.get('roadLocation', {})
             except Exception:
-                road_location = {'address': 'Unknown', 'city': 'Unknown', 'pincode': 'Unknown'}
+                road_location = {'address': 'Unknown', 'district': 'Unknown', 'pincode': 'Unknown'}
         else:
-            road_location = {'address': 'Unknown', 'city': 'Unknown', 'pincode': 'Unknown'}
+            road_location = {'address': 'Unknown', 'district': 'Unknown', 'pincode': 'Unknown'}
 
         # Decode image
         image = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
@@ -166,4 +166,4 @@ def predict():
         return jsonify({'message': f'Prediction error: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5002)

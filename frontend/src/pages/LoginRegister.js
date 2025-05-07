@@ -88,8 +88,8 @@ const LoginRegister = () => {
 
     try {
       const endpoint = isRegistering 
-        ? 'http://localhost:5000/api/auth/register' 
-        : 'http://localhost:5000/api/auth/login';
+        ? 'http://localhost:5004/api/auth/register' 
+        : 'http://localhost:5004/api/auth/login';
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -142,13 +142,11 @@ const LoginRegister = () => {
         }
       } else {
         // Handle login success
-        // Log the full response data for debugging
         console.log('Login response data:', data);
 
-        // Check if the user type exists in the response
-        if (!data.userType) {
-          console.error('Server response missing userType:', data);
-          throw new Error('Server response is missing user type information. Please try again.');
+        // Validate that the user type matches the login attempt
+        if (data.userType !== userType) {
+          throw new Error(`Invalid credentials for ${userType} login. Please use the correct account type.`);
         }
 
         // Store user information

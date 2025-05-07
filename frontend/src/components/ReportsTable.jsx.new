@@ -17,51 +17,50 @@ const ReportsTable = ({ reports, onView, onSeenFilterChange, seenFilter, onResol
 
   return (
     <div className="table-container">
-      <div className="reports-header">
-        <h2>Damage Reports</h2>
-        <div className="filter-controls">
-          {onSeenFilterChange && (
-            <>
-              <button 
-                className={`filter-button ${seenFilter === 'all' ? 'active' : ''}`}
-                onClick={() => onSeenFilterChange('all')}
-              >
-                All
-              </button>
-              <button 
-                className={`filter-button ${seenFilter === 'seen' ? 'active' : ''}`}
-                onClick={() => onSeenFilterChange('seen')}
-              >
-                Seen
-              </button>
-              <button 
-                className={`filter-button ${seenFilter === 'unseen' ? 'active' : ''}`}
-                onClick={() => onSeenFilterChange('unseen')}
-              >
-                Unseen
-              </button>
-            </>
-          )}
-          
-          {onResolvedFilterChange && (
+      <div className="filter-buttons">
+        {onSeenFilterChange && (
+          <div className="filter-group">
             <button 
-              className={`filter-button ${resolvedFilter === 'resolved' ? 'active' : ''}`}
+              className={`filter-btn ${seenFilter === 'all' ? 'active' : ''}`}
+              onClick={() => onSeenFilterChange('all')}
+            >
+              All
+            </button>
+            <button 
+              className={`filter-btn ${seenFilter === 'seen' ? 'active' : ''}`}
+              onClick={() => onSeenFilterChange('seen')}
+            >
+              Seen
+            </button>
+            <button 
+              className={`filter-btn ${seenFilter === 'unseen' ? 'active' : ''}`}
+              onClick={() => onSeenFilterChange('unseen')}
+            >
+              Unseen
+            </button>
+          </div>
+        )}
+        
+        {onResolvedFilterChange && (
+          <div className="filter-group">
+            <button 
+              className={`filter-btn ${resolvedFilter === 'resolved' ? 'active' : ''}`}
               onClick={() => onResolvedFilterChange('resolved')}
             >
               Resolved Only
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       
       <table className="table">
         <thead>
           <tr>
-            <th>Profile</th>
-            <th>Username</th>
+            <th>User</th>
             <th>Date</th>
             <th>Time</th>
             <th>Status</th>
+            <th>Progress</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -77,18 +76,19 @@ const ReportsTable = ({ reports, onView, onSeenFilterChange, seenFilter, onResol
                       </svg>
                     </div>
                   </div>
+                  <span className="user-email">{r.userEmail}</span>
                 </td>
-                <td>{r.userEmail}</td>
                 <td>{formatDate(r.uploadedAt)}</td>
                 <td>{formatTime(r.uploadedAt)}</td>
                 <td>
-                  {r.progress === 'Resolved' ? (
-                    <span className="status-label resolved">Resolved</span>
-                  ) : r.status === 'Seen' ? (
-                    <span className="status-label seen">Seen</span>
-                  ) : (
-                    <span className="status-label unseen">Unseen</span>
-                  )}
+                  <span className={`status-label ${r.status.toLowerCase()}`}>
+                    {r.status}
+                  </span>
+                </td>
+                <td>
+                  <span className={`progress-label ${r.progress.toLowerCase()}`}>
+                    {r.progress}
+                  </span>
                 </td>
                 <td>
                   <button

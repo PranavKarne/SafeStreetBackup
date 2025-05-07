@@ -125,16 +125,9 @@ const Authority = () => {
     
     // Then apply seen/unseen filter
     if (seenFilter !== 'all') {
-      filtered = filtered.filter(report => {
-        // For 'seen' filter: show only reports that are seen but NOT resolved
-        if (seenFilter === 'seen') {
-          return report.status === 'Seen' && report.progress !== 'Resolved';
-        } 
-        // For 'unseen' filter: show only reports that are unseen
-        else {
-          return report.status !== 'Seen';
-        }
-      });
+      filtered = filtered.filter(report => 
+        seenFilter === 'seen' ? report.status === 'Seen' : report.status !== 'Seen'
+      );
     }
 
     // Apply resolved filter if set

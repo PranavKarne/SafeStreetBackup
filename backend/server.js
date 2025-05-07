@@ -7,13 +7,16 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const connectDB = require("./config/db");
 const RoadImage = require("./models/RoadImage");
 const User = require("./models/User");
+const Notification = require("./models/Notification");
 
 const app = express();
 connectDB();
+
+// ✅ Serve  image files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ✅ CORS Configuration
 app.use(cors({
@@ -38,53 +41,6 @@ app.use((err, req, res, next) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Remove local uploads directory handling
-// const uploadsPath = path.join(__dirname, "uploads");
-// console.log(`Serving static files from: ${uploadsPath}`);
-
-// // Ensure uploads directory exists
-// if (!fs.existsSync(uploadsPath)) {
-//     fs.mkdirSync(uploadsPath, { recursive: true });
-//     console.log(`Created uploads directory at: ${uploadsPath}`);
-// }
-
-// // Serve static files with better error handling
-// app.use("/uploads", (req, res, next) => {
-//     const filePath = path.join(uploadsPath, req.path);
-//     console.log(`Attempting to serve file: ${filePath}`);
-    
-//     if (!fs.existsSync(filePath)) {
-//         console.log(`File not found: ${filePath}`);
-//         return res.status(404).json({ error: "File not found" });
-//     }
-    
-//     next();
-// }, express.static(uploadsPath, {
-//     fallthrough: false,
-//     index: false,
-//     redirect: false
-// }));
-
-// ✅ Multer Storage (Saves Images in `uploads/`)
-// const storage = multer.diskStorage({
-//     destination: (req, file, cb) => {
-//         if (!fs.existsSync(uploadsPath)) {
-//             fs.mkdirSync(uploadsPath, { recursive: true });
-//         }
-//         console.log(`Saving file to directory: ${uploadsPath}`);
-//         cb(null, uploadsPath);
-//     },
-//     filename: (req, file, cb) => {
-//         const filename = `${Date.now()}_${file.originalname}`;
-//         console.log(`Generated filename: ${filename}`);
-//         cb(null, filename);
-//     }
-// });
-// const upload = multer({ storage });
-
-// === Backend Endpoint Modification (Accepting data from Frontend) ===
-
-// Modify /api/upload Endpoint to only store data received from frontend
 app.post("/api/upload", async (req, res) => {
     console.log("=== Starting Image Upload Process ===");
     try {
@@ -104,7 +60,7 @@ app.post("/api/upload", async (req, res) => {
         }
 
         // Check if user has address details
-        if (!user.address || !user.city || !user.pincode) {
+        if (!user.address || !user.district || !user.pincode) {
             return res.status(400).json({ 
                 success: false, 
                 error: "Please complete your address details in My Details section before uploading images." 
@@ -121,9 +77,11 @@ app.post("/api/upload", async (req, res) => {
             predictedImageUrl: predictedImageUrl,
             roadLocation: {
                 address: user.address,
-                city: user.city,
+                district: user.district,
                 pincode: user.pincode
-            }
+            },
+            status: 'Unseen', // Default status
+            progress: 'Unresolved' // Default progress
         });
 
         // Save the image
@@ -144,12 +102,6 @@ app.post("/api/upload", async (req, res) => {
     }
 });
 
-// Ensure the separate classification endpoint is removed or commented out
-/*
-app.post("/api/reports/:id/classify", async (req, res) => {
-    // ... logic ...
-});
-*/
 
 app.get("/api/images", async (req, res) => {
     try {
@@ -168,6 +120,121 @@ app.get("/api/images", async (req, res) => {
     }
 });
 
+// Update image classification and status
+app.put("/api/images/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { classification, status, progress } = req.body;
+
+        // Get the original image to check if progress changed to Resolved
+        const originalImage = await RoadImage.findById(id);
+        if (!originalImage) {
+            return res.status(404).json({ error: "Image not found" });
+        }
+
+        // Build update object dynamically for flexibility
+        const updateObj = {};
+        if (classification !== undefined) updateObj.classification = classification;
+        if (status !== undefined) updateObj.status = status;
+        if (progress !== undefined) updateObj.progress = progress;
+
+        const updatedImage = await RoadImage.findByIdAndUpdate(
+            id,
+            updateObj,
+            { new: true } // Return the updated document
+        );
+
+        // Create notification if progress changed to Resolved
+        if (progress === 'Resolved' && originalImage.progress !== 'Resolved') {
+            await Notification.create({
+                userEmail: updatedImage.userEmail,
+                type: 'resolved',
+                message: `Your report for ${updatedImage.roadLocation.address} has been resolved.`,
+                reportId: updatedImage._id,
+                read: false
+            });
+            console.log("✅ Notification created for resolved report");
+        }
+
+        console.log("✅ Image updated:", {
+            id,
+            classification,
+            status,
+            progress
+        });
+
+        res.json({ success: true, message: "Image updated successfully", image: updatedImage });
+    } catch (error) {
+        console.error("❌ Error updating image:", error);
+        res.status(500).json({ error: "Failed to update image" });
+    }
+});
+
+
+// ✅ Notification Routes
+app.get("/api/notifications", async (req, res) => {
+    try {
+        const { email, since } = req.query;
+        
+        if (!email) {
+            return res.status(400).json({ success: false, error: "Email is required" });
+        }
+        
+        // Find notifications for this user since the specified time
+        const query = { userEmail: email };
+        if (since) {
+            query.createdAt = { $gte: new Date(since) };
+        }
+        
+        const notifications = await Notification.find(query).sort({ createdAt: -1 });
+        
+        res.json({ success: true, notifications });
+    } catch (error) {
+        console.error("❌ Error fetching notifications:", error);
+        res.status(500).json({ success: false, error: "Failed to fetch notifications" });
+    }
+});
+
+app.put("/api/notifications/:id/read", async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const notification = await Notification.findByIdAndUpdate(
+            id,
+            { read: true },
+            { new: true }
+        );
+        
+        if (!notification) {
+            return res.status(404).json({ success: false, error: "Notification not found" });
+        }
+        
+        res.json({ success: true, notification });
+    } catch (error) {
+        console.error("❌ Error marking notification as read:", error);
+        res.status(500).json({ success: false, error: "Failed to mark notification as read" });
+    }
+});
+
+app.put("/api/notifications/read-all", async (req, res) => {
+    try {
+        const { email } = req.query;
+        
+        if (!email) {
+            return res.status(400).json({ success: false, error: "Email is required" });
+        }
+        
+        const result = await Notification.updateMany(
+            { userEmail: email, read: false },
+            { read: true }
+        );
+        
+        res.json({ success: true, count: result.modifiedCount });
+    } catch (error) {
+        console.error("❌ Error marking all notifications as read:", error);
+        res.status(500).json({ success: false, error: "Failed to mark all notifications as read" });
+    }
+});
 
 // ✅ User Authentication Routes
 app.post("/api/auth/register", async (req, res) => {
@@ -192,10 +259,9 @@ app.post("/api/auth/register", async (req, res) => {
             email,
             password: hashedPassword,
             role: userType, // This sets the role in the database
-            // Only add address fields for regular users
             ...(userType === 'user' ? {
                 address: '',
-                city: '',
+                district: '',
                 pincode: ''
             } : {})
         });
@@ -239,7 +305,7 @@ app.post("/api/auth/login", async (req, res) => {
         // Only include address fields for regular users
         if (userType === 'user') {
             responsePayload.address = user.address;
-            responsePayload.city = user.city;
+            responsePayload.district = user.district;
             responsePayload.pincode = user.pincode;
         }
         
@@ -268,7 +334,6 @@ app.get("/api/user", async (req, res) => {
             return res.status(404).json({ error: "User not found" });
         }
         
-        // User data already excludes password due to .select('-password')
         res.json({ success: true, user }); // Send the whole user object (without password)
 
     } catch (error) {
@@ -305,7 +370,7 @@ app.put("/api/user/details", async (req, res) => {
   
   try {
     // Extract details including firstName and lastName
-    const { email, firstName, lastName, phoneNumber, address, city, pincode } = req.body;
+    const { email, firstName, lastName, phoneNumber, address, district, pincode } = req.body;
 
     // Validate email presence
     if (!email) {
@@ -320,7 +385,7 @@ app.put("/api/user/details", async (req, res) => {
     if (lastName !== undefined) updateData.lastName = lastName;
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
     if (address !== undefined) updateData.address = address;
-    if (city !== undefined) updateData.city = city;
+    if (district !== undefined) updateData.district = district;
     if (pincode !== undefined) updateData.pincode = pincode;
 
     console.log("Update data prepared:", updateData);
@@ -374,13 +439,37 @@ app.get('/health', (req, res) => {
     res.json({ 
         status: 'ok',
         server: 'running',
-        port: process.env.PORT || 5000,
+        port: process.env.PORT || 5004,
         timestamp: new Date().toISOString()
     });
 });
 
+// ✅ New: Area-wise Grouped Uploads Route
+app.get("/api/area-reports", async (req, res) => {
+    try {
+        const allImages = await RoadImage.find({});
+        const grouped = {};
+
+        allImages.forEach(image => {
+            const pincode = image.roadLocation?.pincode || "Unknown";
+            if (!grouped[pincode]) grouped[pincode] = [];
+            grouped[pincode].push({
+                userEmail: image.userEmail,
+                classification: image.classification,
+                imageUrl: image.imageUrl
+            });
+        });
+
+        res.json({ success: true, data: grouped });
+    } catch (error) {
+        console.error("❌ Error fetching area-wise uploads:", error);
+        res.status(500).json({ success: false, error: "Server error" });
+    }
+});
+
 // ✅ Start Server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5004;
+
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`✅ Server URL: http://localhost:${PORT}`);
